@@ -1,0 +1,35 @@
+﻿pipeline {
+    agent any
+
+    stages {
+        stage('Check Prometheus') {
+            steps {
+                echo 'Checking Prometheus health...'
+                sh 'curl -fsS http://host.docker.internal:9090/-/healthy'
+            }
+        }
+
+        stage('Check Grafana') {
+            steps {
+                echo 'Checking Grafana health...'
+                sh 'curl -fsS http://host.docker.internal:3000/api/health'
+            }
+        }
+
+        stage('Verify Delivery Metrics') {
+            steps {
+                echo 'Checking pending delivery metrics...'
+                sh "curl -fsSG --data-urlencode 'query=pending_deliveries' http://host.docker.internal:9090/api/v1/query"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'SUCCESS: Prometheus, Grafana, and delivery metrics are reachable.'
+        }
+        failure {
+            echo 'FAILURE: Check Console Output for the failing stage.'
+        }
+    }
+}
